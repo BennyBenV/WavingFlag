@@ -41,7 +41,8 @@ function removePlayer(socketId){
 // Nouvelle fonction pour générer les questions QCM
 async function generateQuestions(count = 10) {
   try {
-    const response = await axios.get('http://localhost:3001/api/countries');
+    const apiUrl = process.env.REST_COUNTRIES_API || 'https://restcountries.com/v3.1/all?fields=name,flags,continents,capital,translations';
+    const response = await axios.get(apiUrl);
     const countries = response.data;
     
     // Mélanger et sélectionner 'count' pays

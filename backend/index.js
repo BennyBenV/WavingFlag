@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -8,10 +9,16 @@ const rooms = require('./rooms');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Configuration CORS avec variables d'environnement
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? [
+      process.env.FRONTEND_URL_VERCEL || 'https://ton-frontend-url.vercel.app',
+      process.env.FRONTEND_URL_NETLIFY || 'https://ton-frontend-url.netlify.app'
+    ]
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://ton-frontend-url.vercel.app', 'https://ton-frontend-url.netlify.app']
-    : 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
@@ -30,7 +37,8 @@ app.get('/', (req, res) => {
 // Exemple de route pour récupérer les pays
 app.get('/api/countries', async (req, res) => {
   try {
-    const response = await axios.get('https://restcountries.com/v3.1/all?fields=name,flags,continents,capital,translations');
+    const apiUrl = process.env.REST_COUNTRIES_API || 'https://restcountries.com/v3.1/all?fields=name,flags,continents,capital,translations';
+    const response = await axios.get(apiUrl);
     const countries = response.data.map(country => ({
       name: country.translations?.fra?.common || country.name.common,
       flag: country.flags.svg,
@@ -47,9 +55,7 @@ app.get('/api/countries', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? ['https://ton-frontend-url.vercel.app', 'https://ton-frontend-url.netlify.app']
-      : 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }
