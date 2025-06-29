@@ -9,6 +9,13 @@ const rooms = require('./rooms');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Validation du port
+const portNumber = parseInt(PORT);
+if (isNaN(portNumber) || portNumber < 0 || portNumber > 65535) {
+  console.error(`Port invalide: ${PORT}. Utilisation du port par défaut 3001.`);
+  PORT = 3001;
+}
+
 // Configuration CORS avec variables d'environnement
 const allowedOrigins = process.env.NODE_ENV === 'production' 
   ? [

@@ -6,7 +6,11 @@ function CountriesList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/countries')
+    const apiUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.REACT_APP_API_URL + '/api/countries'
+      : 'http://localhost:3001/api/countries';
+    
+    axios.get(apiUrl)
       .then(response => {
         setCountries(response.data);
         setLoading(false);

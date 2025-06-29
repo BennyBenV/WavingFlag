@@ -61,7 +61,7 @@ function Multiplayer() {
     useEffect(() => {
         // Connexion Socket.IO
         const socketUrl = process.env.NODE_ENV === 'production' 
-          ? window.location.origin.replace('https://', 'wss://').replace('http://', 'ws://')
+          ? process.env.REACT_APP_SOCKET_URL
           : 'http://localhost:3001';
         
         const newSocket = io(socketUrl);
