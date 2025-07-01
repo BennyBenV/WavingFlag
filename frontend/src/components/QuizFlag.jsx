@@ -59,6 +59,7 @@ const QuizFlag = () => {
   const [timeLeft, setTimeLeft] = useState(20);
   const [abandoned, setAbandoned] = useState(false);
   const [results, setResults] = useState([]);
+  const [usedCountries, setUsedCountries] = useState([]);
 
   // Récupérer les paramètres depuis la navigation
   const { continents = ['world'], mode = 'qcm', count = 10 } = location.state || {};
@@ -140,8 +141,22 @@ const QuizFlag = () => {
   }, [currentCountry, gameOver, abandoned]);
 
   const selectRandomCountry = (countriesList) => {
-    const randomIndex = Math.floor(Math.random() * countriesList.length);
-    const selectedCountry = countriesList[randomIndex];
+    // Filtrer les pays déjà utilisés
+    const availableCountries = countriesList.filter(country => 
+      !usedCountries.includes(country.name)
+    );
+    
+    // Si plus assez de pays disponibles, réinitialiser la liste
+    if (availableCountries.length === 0) {
+      setUsedCountries([]);
+      return selectRandomCountry(countriesList);
+    }
+    
+    const randomIndex = Math.floor(Math.random() * availableCountries.length);
+    const selectedCountry = availableCountries[randomIndex];
+    
+    // Ajouter le pays à la liste des utilisés
+    setUsedCountries(prev => [...prev, selectedCountry.name]);
     setCurrentCountry(selectedCountry);
     setTimeLeft(timer);
     
@@ -312,6 +327,7 @@ const QuizFlag = () => {
     setUserAnswer('');
     setShowResult(false);
     setIsCorrect(false);
+    setUsedCountries([]);
     selectRandomCountry(filteredCountries);
   };
 

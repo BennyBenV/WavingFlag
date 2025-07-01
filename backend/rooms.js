@@ -4,17 +4,19 @@ const axios = require('axios'); // pour appeler l'API REST Countries
 const rooms = {};
 
 //Création d'une room
-function createRoom(pseudo, socketId) {
+function createRoom(pseudo, socketId, gameSettings = { questionCount: 10, continent: 'all' }) {
     const roomId = 'room-' + uuidv4().slice(0,6);
     rooms[roomId] = {
-        players : [{ id: socketId, pseudo, score : 0}],
+        players : [{ id: socketId, pseudo, score : 0, isCreator: true }],
         started : false,
         currentQuestion : 0,
         questions : [],
         answers : [],
         questionStartTime : null,
         questionTimeout: null,
-        questionInProgress: false
+        questionInProgress: false,
+        gameSettings: gameSettings,
+        creatorId: socketId
     };
     return roomId;
 }
@@ -39,30 +41,50 @@ function removePlayer(socketId){
 }
 
 // Nouvelle fonction pour générer les questions QCM
-async function generateQuestions(count = 10) {
+async function generateQuestions(count = 10, continent = 'all') {
   try {
     const apiUrl = process.env.REST_COUNTRIES_API || 'https://restcountries.com/v3.1/all?fields=name,flags,continents,capital,translations';
     const response = await axios.get(apiUrl);
-    const countries = response.data;
+    let countries = response.data;
+    
+    // Filtrer par continent si spécifié
+    if (continent && continent !== 'all') {
+      countries = countries.filter(country => 
+        country.continents && country.continents.includes(continent)
+      );
+    }
+    
+    // Vérifier qu'on a assez de pays
+    if (countries.length < count) {
+      console.warn(`Pas assez de pays pour le continent ${continent}, utilisation de tous les pays`);
+      const allCountriesResponse = await axios.get('https://restcountries.com/v3.1/all?fields=name,flags,continents,capital,translations');
+      countries = allCountriesResponse.data;
+    }
     
     // Mélanger et sélectionner 'count' pays
     const shuffled = countries.sort(() => Math.random() - 0.5).slice(0, count);
     
     // Générer les questions QCM
     const questions = shuffled.map((country) => {
+      // Utiliser la traduction française si disponible, sinon le nom commun
+      const countryName = country.translations?.fra?.common || country.name.common;
+      
       // Trouver 3 mauvaises réponses aléatoires
       const others = countries.filter(c => c.name.common !== country.name.common);
       const wrongChoices = others.sort(() => Math.random() - 0.5).slice(0, 3);
       
-      // Mélanger les 4 choix
+      // Mélanger les 4 choix avec traductions françaises
       const choices = [
-        { name: country.name.common, isCorrect: true },
-        ...wrongChoices.map(c => ({ name: c.name.common, isCorrect: false }))
+        { name: countryName, isCorrect: true },
+        ...wrongChoices.map(c => ({ 
+          name: c.translations?.fra?.common || c.name.common, 
+          isCorrect: false 
+        }))
       ].sort(() => Math.random() - 0.5);
       
       return {
         flag: country.flags.svg,
-        answer: country.name.common,
+        answer: countryName,
         choices: choices
       };
     });
@@ -78,15 +100,18 @@ async function generateQuestions(count = 10) {
 async function startGame(roomId) {
   if (!rooms[roomId]) return false;
   
-  const questions = await generateQuestions(10); // 10 questions par défaut
+  const room = rooms[roomId];
+  const settings = room.gameSettings || { questionCount: 10, continent: 'all' };
+  
+  const questions = await generateQuestions(settings.questionCount, settings.continent);
   if (questions.length === 0) return false;
   
-  rooms[roomId].started = true;
-  rooms[roomId].questions = questions;
-  rooms[roomId].currentQuestion = 0;
-  rooms[roomId].answers = [];
-  rooms[roomId].questionStartTime = Date.now();
-  rooms[roomId].questionInProgress = false;
+  room.started = true;
+  room.questions = questions;
+  room.currentQuestion = 0;
+  room.answers = [];
+  room.questionStartTime = Date.now();
+  room.questionInProgress = false;
   return true;
 }
 
@@ -139,6 +164,23 @@ function clearQuestionTimeout(roomId) {
   rooms[roomId].questionTimeout = null;
 }
 
+// Mettre à jour les paramètres de jeu
+function updateGameSettings(roomId, socketId, newSettings) {
+  if (!rooms[roomId]) return false;
+  
+  const room = rooms[roomId];
+  
+  // Vérifier que c'est le créateur qui fait la modification
+  if (room.creatorId !== socketId) return false;
+  
+  room.gameSettings = {
+    ...room.gameSettings,
+    ...newSettings
+  };
+  
+  return true;
+}
+
 module.exports = {
     createRoom,
     joinRoom,
@@ -149,5 +191,6 @@ module.exports = {
     addAnswer,
     resetAnswers,
     setQuestionTimeout,
-    clearQuestionTimeout
+    clearQuestionTimeout,
+    updateGameSettings
 }

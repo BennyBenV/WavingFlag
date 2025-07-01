@@ -74,8 +74,8 @@ io.on('connection', (socket) => {
   console.log('Un joueur connecté : ', socket.id);
 
   // Création d'une room
-  socket.on('createRoom', ({pseudo}, callback) => {
-    const roomId = rooms.createRoom(pseudo, socket.id);
+  socket.on('createRoom', ({pseudo, gameSettings}, callback) => {
+    const roomId = rooms.createRoom(pseudo, socket.id, gameSettings);
     socket.join(roomId);
     callback({roomId});
     io.to(roomId).emit('roomUpdate', rooms.getRoom(roomId));
@@ -91,7 +91,24 @@ io.on('connection', (socket) => {
   });
 
   // Lancer la partie
-  socket.on('startGame', async ({ roomId }) => {
+  socket.on('startGame', async ({ roomId, gameSettings }) => {
+    const room = rooms.getRoom(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room non trouvée' });
+      return;
+    }
+    
+    // Vérifier que c'est le créateur qui lance la partie
+    if (room.creatorId !== socket.id) {
+      socket.emit('error', { message: 'Seul le créateur peut lancer la partie' });
+      return;
+    }
+    
+    // Mettre à jour les paramètres si fournis
+    if (gameSettings) {
+      rooms.updateGameSettings(roomId, socket.id, gameSettings);
+    }
+    
     const ok = await rooms.startGame(roomId);
     if (!ok) {
       socket.emit('error', { message: 'Erreur lors du lancement de la partie' });
@@ -99,6 +116,16 @@ io.on('connection', (socket) => {
     }
     io.to(roomId).emit('gameStarted');
     sendQuestion(roomId);
+  });
+
+  // Mettre à jour les paramètres de jeu
+  socket.on('updateGameSettings', ({ roomId, gameSettings }) => {
+    const success = rooms.updateGameSettings(roomId, socket.id, gameSettings);
+    if (success) {
+      io.to(roomId).emit('roomUpdate', rooms.getRoom(roomId));
+    } else {
+      socket.emit('error', { message: 'Impossible de mettre à jour les paramètres' });
+    }
   });
 
   // Réception des réponses
