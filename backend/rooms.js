@@ -51,18 +51,18 @@ async function generateQuestions(count = 10) {
     // Générer les questions QCM
     const questions = shuffled.map((country) => {
       // Trouver 3 mauvaises réponses aléatoires
-      const others = countries.filter(c => c.name !== country.name);
+      const others = countries.filter(c => c.name.common !== country.name.common);
       const wrongChoices = others.sort(() => Math.random() - 0.5).slice(0, 3);
       
       // Mélanger les 4 choix
       const choices = [
-        { name: country.name, isCorrect: true },
-        ...wrongChoices.map(c => ({ name: c.name, isCorrect: false }))
+        { name: country.name.common, isCorrect: true },
+        ...wrongChoices.map(c => ({ name: c.name.common, isCorrect: false }))
       ].sort(() => Math.random() - 0.5);
       
       return {
-        flag: country.flag,
-        answer: country.name,
+        flag: country.flags.svg,
+        answer: country.name.common,
         choices: choices
       };
     });

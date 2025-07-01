@@ -46,6 +46,7 @@ app.get('/api/countries', async (req, res) => {
   try {
     const apiUrl = process.env.REST_COUNTRIES_API || 'https://restcountries.com/v3.1/all?fields=name,flags,continents,capital,translations';
     const response = await axios.get(apiUrl);
+    
     const countries = response.data.map(country => ({
       name: country.translations?.fra?.common || country.name.common,
       flag: country.flags.svg,

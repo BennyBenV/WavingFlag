@@ -7,8 +7,9 @@ import QuizFlag from './components/QuizFlag';
 import Register from './components/Register';
 import Login from './components/Login';
 import Home from './components/Home'; // à créer si besoin
-import QuizSetup from './components/QuizSetup';
+
 import Multiplayer from './components/Multiplayer';
+import Quiz from './components/Quiz';
 // import CountriesList from './components/CoutriesList';
 import './App.css';
 
@@ -34,10 +35,11 @@ function App() {
       <Header isLoggedIn={isLoggedIn} profilePic={profilePic} />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/quiz" element={<QuizFlag />} />
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="/quiz/play" element={<QuizFlag />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/setup" element={<QuizSetup />} />
+
         <Route path="/multiplayer" element={<Multiplayer />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
