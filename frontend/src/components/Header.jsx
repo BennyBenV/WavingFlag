@@ -22,7 +22,6 @@ function Header({ isLoggedIn = false, profilePic }) {
         <nav className="header-nav">
           <a href="/" className="header-link">Accueil</a>
           <a href="/quiz" className="header-link">Quiz</a>
-          <a href="#" className="header-link">Classement</a>
           <a href="#" className="header-link">Profil</a>
         </nav>
         <div className="header-user">
